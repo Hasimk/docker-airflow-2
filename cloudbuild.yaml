@@ -36,5 +36,5 @@ steps:
   - -x
   - .*\.pyc|airflow_monitoring.py
   - dags
-  - ${asia-south1-docker-airflow--b020c7ab-bucket}/dags
+  - ${_DEPLOY_DAGS_LOCATION}/dags
 images: ['gcr.io/$PROJECT_ID/airflow-dags-builder:latest']
