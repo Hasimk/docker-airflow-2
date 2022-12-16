@@ -1,0 +1,40 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  id: Pull docker cache
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+   docker pull gcr.io/$PROJECT_ID/airflow-dags-builder:latest || exit 0
+- name: gcr.io/cloud-builders/docker
+  id: Build Airflow DAGs Builder
+  args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/airflow-dags-builder',
+      '--cache-from', 'gcr.io/$PROJECT_ID/airflow-dags-builder:latest',
+      './'
+    ]
+- name: 'gcr.io/$PROJECT_ID/airflow-dags-builder'
+  id: Validation Test
+  # Validate the integrity of the DAG files.
+  entrypoint: python
+  env:
+  - AIRFLOW__CORE__DAGS_FOLDER=/workspace/dags
+  args:
+  - -m
+  - unittest
+  - tests/dag_integrity_test.py
+
+- name: gcr.io/cloud-builders/gsutil
+  # Deploy the DAGs to your composer environment DAGs GCS folder
+  id: Deploy DAGs
+  args:
+  - -m
+  - rsync
+  - -r
+  - -c
+  - -x
+  - .*\.pyc|airflow_monitoring.py
+  - dags
+  - ${_DEPLOY_DAGS_LOCATION}/dags
+images: ['gcr.io/$PROJECT_ID/airflow-dags-builder:latest']
